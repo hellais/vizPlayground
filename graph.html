@@ -1,0 +1,175 @@
+<!DOCTYPE html>
+<html class="ocks-org do-not-copy">
+<meta charset="utf-8">
+<title>Bridge Reachability study</title>
+<style>
+
+.background {
+  fill: #eee;
+}
+
+line {
+  stroke: #fff;
+}
+
+text.active {
+  fill: red;
+}
+
+</style>
+<body>
+<!-- <select id="country"> -->
+<!--   <option value="CN">China</option> -->
+<!--   <option value="IR">Iran</option> -->
+<!--   <option value="BE">Russia</option> -->
+<!--   <option value="UA">Ukraine</option> -->
+<!-- </select> -->
+</body>
+<script src="http://d3js.org/d3.v3.min.js"></script>
+
+<script>
+
+var margin = {top: 80, right: 0, bottom: 10, left: 80},
+    width = 1200,
+    height = 720;
+
+var x = d3.scale.ordinal().rangeBands([0, width]),
+    y = d3.scale.ordinal().rangeBands([0, height]),
+    c = d3.scale.category10().domain(d3.range(10));
+
+var svg = d3.select("body").append("svg")
+    .attr("width", width + margin.left + margin.right)
+    .attr("height", height + margin.top + margin.bottom)
+    .style("margin-left", margin.left + "px")
+  .append("g")
+    .attr("transform", "translate(" + margin.left + "," + margin.top + ")");
+
+d3.csv("bridge_reachability.csv", function(measurements) {
+  svg.append("rect")
+      .attr("class", "background")
+      .attr("width", width)
+      .attr("height", height);
+
+  var measurement_by_country = {},
+    control_country = "NL",
+    countries;
+  
+  measurements = measurements.sort(function(a,b){
+    return d3.ascending(a.timestamp, b.timestamp);
+  });
+
+  measurements.forEach(function(measurement, i) {
+    if (!measurement_by_country[measurement.country_code])
+      measurement_by_country[measurement.country_code] = [];
+    measurement_by_country[measurement.country_code].push(measurement);
+  });
+  countries = Object.keys(measurement_by_country);
+
+  function find_closest_control_measurement(timestamp, fingerprint) {
+    var possible_measurements = countries[control_country].filter(function(measurement) {
+      return measurement.fingerprint == fingerprint;
+    }), closest = possible_measurements[0];
+    possible_measurements.forEach(function(measurement, i) {
+        var distance = Math.abs(measurement.timestamp - timestamp);
+        if (distance < Math.abs(closest.timestamp - timestamp))
+          closest = measurement;
+    });
+    return closest;
+  }
+
+  function generate_for_country(country) {
+    var measurements_by_date = d3.nest()
+                          .key(function(d) { return d.timestamp })
+                          .map(measurement_by_country[country], d3.map),
+        measurements_by_fingerprint = d3.nest()
+                          .key(function(d) { return d.fingerprint })
+                          .map(measurement_by_country[country], d3.map),
+        measurements_by_fingerprint_date = d3.nest()
+                          .key(function(d) { return d.fingerprint} )
+                          .key(function(d) { return d.timestamp} )
+                          .map(measurement_by_country[country], d3.map);
+        bridge_fingerprints = measurements_by_fingerprint.keys(),
+        bridge_measurement_dates = measurements_by_date.keys();
+    
+    x.domain(bridge_measurement_dates);
+    y.domain(bridge_fingerprints);
+    console.log(bridge_fingerprints);
+    svg.selectAll(".row").html(null);
+    var row = svg.selectAll(".row")
+        .data(bridge_fingerprints)
+      .enter().append("g")
+        .attr("class", "row")
+        .attr("transform", function(d, i) { return "translate(0," + y(d) + ")"; })
+        .each(function(fingerprint){
+          console.log("Datum");
+          console.log(fingerprint);
+          var cell = d3.select(this).selectAll(".cell")
+            .data(bridge_measurement_dates)
+            .enter().append("g")
+            .attr("class", "cell")
+            .attr("x", function(d) { return x(d); })
+            .attr("width", x.rangeBand()-2)
+            .attr("height", y.rangeBand()-2)
+            .attr("stroke", "2px")
+            .each(function(date){
+              var that = this,
+                selected_measurements = measurements_by_fingerprint_date.get(fingerprint).get(date),
+                result = 7;
+              if (!selected_measurements) {
+                 d3.select(that)
+                .append("rect")
+                .attr("class", "subcell")
+                .attr("x", x(date))
+                .attr("width", x.rangeBand()-2)
+                .attr("height", y.rangeBand()-2)
+                .style("fill", c(result)); 
+              } else {
+                selected_measurements.forEach(function(measurement, idx) {
+                  var w = (x.rangeBand()-2)/selected_measurements.length;
+                  if (!measurement)
+                    result = 8;
+                  else if (measurement.success == "False")
+                    result = 3;
+                  else if (measurement.success == "True")
+                    result = 2;
+                  d3.select(that)
+                  .append("rect")
+                  .attr("class", "subcell")
+                  .attr("x", x(date) + w*idx)
+                  .attr("width", w)
+                  .attr("height", y.rangeBand()-2)
+                  .style("fill", c(result)); 
+                });
+              }
+          });
+        });
+
+    row.append("line")
+      .attr("x2", width);
+
+    row.append("text")
+         .attr("x", -6)
+         .attr("y", x.rangeBand() / 2 - 6)
+         .attr("font-size", "10px")
+         .attr("dy", ".32em")
+         .attr("text-anchor", "end")
+         .text(function(d, i) { var m = measurements_by_fingerprint.get(d)[0]; return m.transport + " " + m.distributor; });
+
+  }
+
+  generate_for_country("CN");
+
+  function mouseover(p) {
+  }
+
+  function mouseout() {
+  }
+
+  // d3.select("#country").on("change", function() {
+  //   console.log(this.value);
+  //   generate_for_country(this.value);
+  // });
+
+});
+
+</script>
