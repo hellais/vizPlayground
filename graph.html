@@ -18,12 +18,12 @@ text.active {
 
 </style>
 <body>
-<!-- <select id="country"> -->
-<!--   <option value="CN">China</option> -->
-<!--   <option value="IR">Iran</option> -->
-<!--   <option value="BE">Russia</option> -->
-<!--   <option value="UA">Ukraine</option> -->
-<!-- </select> -->
+<select id="country">
+  <option value="CN">China</option>
+  <option value="IR">Iran</option>
+  <option value="BE">Russia</option>
+  <option value="UA">Ukraine</option>
+</select>
 </body>
 <script src="http://d3js.org/d3.v3.min.js"></script>
 
@@ -52,7 +52,7 @@ d3.csv("bridge_reachability.csv", function(measurements) {
 
   var measurement_by_country = {},
     control_country = "NL",
-    countries;
+    countries, row;
   
   measurements = measurements.sort(function(a,b){
     return d3.ascending(a.timestamp, b.timestamp);
@@ -93,9 +93,7 @@ d3.csv("bridge_reachability.csv", function(measurements) {
     
     x.domain(bridge_measurement_dates);
     y.domain(bridge_fingerprints);
-    console.log(bridge_fingerprints);
-    svg.selectAll(".row").html(null);
-    var row = svg.selectAll(".row")
+    row = svg.selectAll(".row")
         .data(bridge_fingerprints)
       .enter().append("g")
         .attr("class", "row")
@@ -149,7 +147,7 @@ d3.csv("bridge_reachability.csv", function(measurements) {
 
     row.append("text")
          .attr("x", -6)
-         .attr("y", x.rangeBand() / 2 - 6)
+         .attr("y", y.rangeBand() / 2)
          .attr("font-size", "10px")
          .attr("dy", ".32em")
          .attr("text-anchor", "end")
@@ -165,10 +163,14 @@ d3.csv("bridge_reachability.csv", function(measurements) {
   function mouseout() {
   }
 
-  // d3.select("#country").on("change", function() {
-  //   console.log(this.value);
-  //   generate_for_country(this.value);
-  // });
+  d3.select("#country").on("change", function() {
+    console.log(this.value);
+    console.log(svg.selectAll(".row"));
+    console.log(row);
+    row
+      .remove();
+    generate_for_country(this.value);
+  });
 
 });
 
