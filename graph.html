@@ -16,6 +16,9 @@ text.active {
   fill: red;
 }
 
+.column {
+  padding: 100px;
+}
 </style>
 <body>
 <select id="country">
@@ -52,15 +55,20 @@ d3.csv("bridge_reachability.csv", function(measurements) {
 
   var measurement_by_country = {},
     control_country = "NL",
-    countries, row;
+    countries, row, column;
   
-  measurements = measurements.sort(function(a,b){
-    return d3.ascending(a.timestamp, b.timestamp);
+  measurements = measurements.sort(function(a, b){
+    return d3.ascending(parseInt(a.timestamp), parseInt(b.timestamp));
   });
 
   measurements.forEach(function(measurement, i) {
     if (!measurement_by_country[measurement.country_code])
       measurement_by_country[measurement.country_code] = [];
+    
+    var time = new Date(parseInt(measurement.timestamp) * 1000),
+      new_time;
+    new_time = new Date("" + time.getFullYear() + "-" + (time.getMonth() + 1) + "-" + time.getDate());
+    measurement.timestamp = new_time.getTime() / 1000;
     measurement_by_country[measurement.country_code].push(measurement);
   });
   countries = Object.keys(measurement_by_country);
@@ -85,8 +93,8 @@ d3.csv("bridge_reachability.csv", function(measurements) {
                           .key(function(d) { return d.fingerprint })
                           .map(measurement_by_country[country], d3.map),
         measurements_by_fingerprint_date = d3.nest()
-                          .key(function(d) { return d.fingerprint} )
-                          .key(function(d) { return d.timestamp} )
+                          .key(function(d) { return d.fingerprint } )
+                          .key(function(d) { return d.timestamp } )
                           .map(measurement_by_country[country], d3.map);
         bridge_fingerprints = measurements_by_fingerprint.keys(),
         bridge_measurement_dates = measurements_by_date.keys();
@@ -99,8 +107,6 @@ d3.csv("bridge_reachability.csv", function(measurements) {
         .attr("class", "row")
         .attr("transform", function(d, i) { return "translate(0," + y(d) + ")"; })
         .each(function(fingerprint){
-          console.log("Datum");
-          console.log(fingerprint);
           var cell = d3.select(this).selectAll(".cell")
             .data(bridge_measurement_dates)
             .enter().append("g")
@@ -153,6 +159,23 @@ d3.csv("bridge_reachability.csv", function(measurements) {
          .attr("text-anchor", "end")
          .text(function(d, i) { var m = measurements_by_fingerprint.get(d)[0]; return m.transport + " " + m.distributor; });
 
+    column = svg.selectAll(".column")
+        .data(bridge_measurement_dates)
+      .enter().append("g")
+        .attr("class", "column")
+        .attr("transform", function(d, i) { return "translate(" + x(d) + ")rotate(-90)"; });
+
+    column.append("line")
+        .attr("x1", -width);
+
+    column.append("text")
+        .attr("x", 6)
+        .attr("y", x.rangeBand() / 2)
+        .attr("dy", ".32em")
+        .attr("font-size", "10px")
+        .attr("text-anchor", "start")
+        .text(function(d, i) { return new Date(d*1000); });
+
   }
 
   generate_for_country("CN");
@@ -164,11 +187,8 @@ d3.csv("bridge_reachability.csv", function(measurements) {
   }
 
   d3.select("#country").on("change", function() {
-    console.log(this.value);
-    console.log(svg.selectAll(".row"));
-    console.log(row);
-    row
-      .remove();
+    row.remove();
+    column.remove();
     generate_for_country(this.value);
   });
 
