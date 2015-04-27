@@ -1,0 +1,40 @@
+<html lang='en'>
+<head>
+    <meta content='text/html; charset=utf-8' http-equiv='Content-Type'>
+    <title>OONI</title>
+
+    <link href='https://fonts.googleapis.com/css?family=Open+Sans:400,300,700' rel='stylesheet' type='text/css'>
+    <link href='https://fonts.googleapis.com/css?family=PT+Serif:400,700,400italic' rel='stylesheet' type='text/css'>
+    <link href='https://netdna.bootstrapcdn.com/font-awesome/4.2.0/css/font-awesome.css' rel='stylesheet' type='text/css'>
+    <link href='https://maxcdn.bootstrapcdn.com/bootstrap/3.2.0/css/bootstrap.min.css' rel='stylesheet' type='text/css'>
+
+    <link href='dist/metricsgraphics.css' rel='stylesheet' type='text/css'>
+
+    <script src='https://ajax.googleapis.com/ajax/libs/jquery/2.1.3/jquery.min.js'></script>
+    <script src='https://cdnjs.cloudflare.com/ajax/libs/d3/3.5.0/d3.min.js' charset='utf-8'></script>
+
+    <script src='dist/metricsgraphics.js' charset='utf-8'></script>
+    <script>
+      d3.json('data.json', function(data) {
+        data = MG.convert.date(data, 'date');
+        MG.data_graphic({
+          title: "Data Transfer",
+          description: "Data transfer of OONI",
+          data: data,
+          width: 800,
+          height: 500,
+          binned: true,
+          chart_type: "histogram",
+          target: '#data-transfer',
+          x_accessor: 'date',
+          y_accessor: 'data_transfer',
+          // markers: [{'year': 1964, 'label': '"The Creeping Terror" released'}]
+        })
+      })
+    </script>
+</head>
+<body>
+
+<div id='data-transfer'></div>
+</body>
+</html>
